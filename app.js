@@ -1,43 +1,56 @@
 import { firebaseConfig } from './firebase-config.js';
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-import { getDatabase, ref, push, onValue } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
+import {
+  getDatabase,
+  ref,
+  push,
+  onValue
+} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
 const messagesDiv = document.getElementById('messages');
 
-// Listen for all messages in real time
+// Load messages in realtime
 onValue(ref(db, 'messages'), (snapshot) => {
   messagesDiv.innerHTML = '';
 
-  snapshot.forEach((childSnapshot) => {
-    const data = childSnapshot.val();
+  if (snapshot.exists()) {
+    snapshot.forEach((child) => {
+      const data = child.val();
 
-    const div = document.createElement('div');
-    div.className = 'msg';
-    div.innerHTML = `<b>${data.name}</b><br>${data.message}`;
+      const div = document.createElement('div');
+      div.className = 'msg';
+      div.innerHTML = `<b>${data.name}</b><br>${data.message}`;
 
-    messagesDiv.appendChild(div);
-  });
+      messagesDiv.appendChild(div);
+    });
 
-  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+  }
 });
 
 // Send message
-document.getElementById('sendBtn').onclick = async () => {
+document.getElementById('sendBtn').addEventListener('click', async () => {
   const name =
     document.getElementById('name').value || 'Anonymous';
 
   const message =
-    document.getElementById('messageInput').value;
+    document.getElementById('messageInput').value.trim();
 
-  if (!message.trim()) return;
+  if (!message) return;
 
-  await push(ref(db, 'messages'), {
-    name,
-    message
-  });
+  try {
+    await push(ref(db, 'messages'), {
+      name,
+      message,
+      time: Date.now()
+    });
 
-  document.getElementById('messageInput').value = '';
-};
+    document.getElementById('messageInput').value = '';
+  } catch (err) {
+    console.error(err);
+    alert('Message failed');
+  }
+});
